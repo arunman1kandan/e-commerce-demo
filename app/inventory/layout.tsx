@@ -1,3 +1,4 @@
+import Navbar from "@/components/Navbar";
 import { Toaster } from "sonner";
 
 export default function InventoryLayout({ children }: { children: React.ReactNode }) {
@@ -5,6 +6,7 @@ export default function InventoryLayout({ children }: { children: React.ReactNod
     <html lang="en">
       <body>
         <Toaster position="bottom-right" />
+        <Navbar />
         {children}
       </body>
     </html>

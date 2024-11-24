@@ -1,10 +1,10 @@
 "use client"
-import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Package, ShoppingCart, Users, DollarSign, Activity, Loader2, HomeIcon, PackageCheckIcon, MessageCircle } from 'lucide-react'
+import { Package, ShoppingCart, Users, DollarSign, Activity, Loader2, HomeIcon, PackageCheckIcon, MessageCircle, ActivityIcon } from 'lucide-react'
 import axios from 'axios'
 import { useEffect, useState } from 'react'  // Import necessary hooks from React
+import { usePathname } from 'next/navigation'
 
 // Fetch customer count from API
 async function getCustomerCount() {
@@ -30,12 +30,36 @@ async function getRevenue(){
   return res.data
 }
 
+async function getRecentActivittties(){
+  const prompt = `you are supposed to send a one line response with no content added by you.
+  You are a data analyst for an e-commerce website and provide insights based on the data.
+  You have to analyze the recent activities of the website and return the most important activity in one line.
+  All the money are in rupees only even in DB so dont convert them
+  And never mention about money just recent trends and things about inventory
+
+  like above but one liner
+  `
+
+  const recentActivities = []
+  //send th prompt to the llm
+  for(let i=0; i<4; i++){
+    const res = await axios.post('http://localhost:3000/api/chat', {prompt})
+    recentActivities.push(res.data.response)
+  }
+  return recentActivities
+}
+
 export default function Page() {
+  const pathName = usePathname()
+  console.log(pathName)
+
   // Define state variables to hold the fetched data
   const [customerCount, setCustomerCount] = useState(null)
   const [ordersCount, setOrdersCount] = useState(null)
   const [productsCount, setProductsCount] = useState(null)
   const [revenue, setRevenue] = useState(null)
+  const [recentActivities, setRecentActivities] = useState([])
+
 
   // Fetch data once when the component mounts
   useEffect(() => {
@@ -44,11 +68,14 @@ export default function Page() {
       const orderData = await getOrdersCount()
       const productData = await getProductsCount()
       const revenueData = await getRevenue()
+      const recentActivitiesData = await getRecentActivittties()
+      console.log(recentActivitiesData)
       
       // Update the state with the fetched data
       setCustomerCount(customerData)
       setOrdersCount(orderData)
       setProductsCount(productData)
+      setRecentActivities(recentActivitiesData)
       setRevenue(revenueData)
     }
     
@@ -65,56 +92,11 @@ export default function Page() {
     </div>
   }
 
-  const navbarItems = [
-    {
-      title: 'Home',
-      href: '/',
-      icon: <HomeIcon size={20} />
-    },
-    {
-      title: 'Products',
-      href: '/products',
-      icon: <Package size={20} />
-    },
-    {
-      title: 'Add to inventory',
-      href: '/inventory',
-      icon: <ShoppingCart size={20} />
-    },
-    {
-      title: 'Place an order',
-      href: '/order',
-      icon: <PackageCheckIcon size={20} />
-    },
-    {
-      title : "Chat with our AI",
-      href : "/chat",
-      icon : <MessageCircle size={20}/>
-    }
-  ]
 
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">E-commerce Admin</h1>
-            <nav>
-              <ul className="flex space-x-4">
-                  {navbarItems.map((item, index) => (
-                    <li key={index}>
-                      <Link href={item.href} className="text-gray-600 hover:text-gray-900 flex items-center gap-1">
-                        {item.icon}
-                        {item.title}
-                      </Link>
-                    </li>
-                  ))}
-              </ul>
-            </nav>
-          </div>
-        </div>
-      </header>
+      
 
       {/* Main Content */}
       <main className="flex-grow bg-gray-100">
@@ -172,18 +154,18 @@ export default function Page() {
             </CardHeader>
             <CardContent>
               <ul className="space-y-4">
-                <li className="flex items-center">
-                  <Activity className="h-5 w-5 mr-2 text-blue-500" />
-                  <span>New order #1234 received from John Doe</span>
-                </li>
-                <li className="flex items-center">
-                  <Activity className="h-5 w-5 mr-2 text-green-500" />
-                  <span>Product "Wireless Headphones" stock updated</span>
-                </li>
-                <li className="flex items-center">
-                  <Activity className="h-5 w-5 mr-2 text-yellow-500" />
-                  <span>Customer support ticket #5678 resolved</span>
-                </li>
+                  {recentActivities.map((activity, index) => (
+                    <li key={index} className="flex items-center space-x-4">
+                      <div className="flex-shrink-0">
+                        <span className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                          <ActivityIcon />
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{activity}</p>
+                        </div>
+                      </li>
+                  ))}
               </ul>
             </CardContent>
           </Card>

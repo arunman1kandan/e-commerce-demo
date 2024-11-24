@@ -1,68 +1,131 @@
-"use client"
+"use client";
 
-import { prisma } from '@/lib/prisma';
-import React, { useState, useEffect } from 'react';
-import { JsonValue } from 'type-fest'; // Importing JsonValue if necessary
+import { useEffect, useState } from "react";
+import { Table, TableRow, TableCell, TableHead, TableBody } from "@/components/ui/table"; // Import Shadcn table components
+import { Card, CardHeader, CardContent } from "@/components/ui/card"; // Import Shadcn card components
+import { Loader2 } from "lucide-react";
 
-// Define the Order type
 interface Order {
-  status: string;
   id: number;
-  customer: string;
-  totalAmount: number;
-  items: JsonValue; // Use JsonValue for items
-  createdAt: Date;
+  status: string;
+  createdAt: string;
+  customer: {
+    name: string;
+    email: string;
+  };
+  items: {
+    product: {
+      product: string;
+    };
+    quantity: number;
+    price: number;
+  }[];  
 }
 
-async function fetchOrders(): Promise<Order[]> {
-  const orders = await prisma.order.findMany();
-  console.log(orders)
-  return orders;
-}
-
-function Page() {
-  const [orders, setOrders] = useState<Order[]>([]); // Using the Order type here
+const OrdersPage = () => {
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function getOrders() {
+    // Fetch orders from the API
+    const fetchOrders = async () => {
       try {
-        const fetchedOrders = await fetchOrders();
-        setOrders(fetchedOrders);
-      } catch (error) {
-        console.error('Error fetching orders:', error);
+        const response = await fetch("/api/orders");
+        if (!response.ok) {
+          throw new Error("Failed to fetch orders");
+        }
+        const data = await response.json();
+        setOrders(data.orders);
+      } catch (err: any) {
+        setError(err.message || "An unexpected error occurred.");
       } finally {
         setLoading(false);
       }
-    }
-    getOrders();
+    };
+
+    fetchOrders();
   }, []);
 
-  console.log(orders)
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="animate-spin" size={48} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <p className="text-red-500 font-medium">{error}</p>
+      </div>
+    );
+  }
 
   return (
-    <div className='flex flex-col items-center justify-center'>
-      <h1 className='text-4xl font-bold'>Orders</h1>
-
-      {loading ? (
-        <div className="flex justify-center items-center">
-          <div className="loader border-t-4 border-blue-500 border-solid rounded-full w-16 h-16 animate-spin"></div>
-        </div>
-      ) : (
-        orders.map((order) => (
-          <div key={order.id} className='border border-gray-300 p-4 rounded-md'>
-            <div className="flex flex-col gap-1">
-              <p className='text-gray-500'>Order Number: {order.id}</p>
-              <p className='text-gray-500'>Customer Name: {order.customer}</p>
-            </div>
-            <p className='text-gray-500'>Order placed At: {new Date(order.createdAt).toString()}</p>
-            <p className='text-gray-500'>Current status: {order.status}</p>
-            <p className='text-gray-500'>Total amount: {order.totalAmount}</p>
-          </div>
-        ))
-      )}
+    <div className="container mx-auto py-8">
+      <Card>
+        <CardHeader>
+          <h2 className="text-xl font-semibold text-center">Orders</h2>
+        </CardHeader>
+        <CardContent>
+          <Table className="w-full table-auto">
+            <TableHead>
+              <TableRow>
+                <TableCell className="text-left px-4 py-2">Order ID</TableCell>
+                <TableCell className="text-left px-4 py-2">Customer</TableCell>
+                <TableCell className="text-center px-4 py-2">Status</TableCell>
+                <TableCell className="text-left px-4 py-2">Items</TableCell>
+                <TableCell className="text-center px-4 py-2">Date</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {orders.map((order) => (
+                <TableRow key={order.id}>
+                  <TableCell className="text-left px-4 py-2">{order.id}</TableCell>
+                  <TableCell className="text-left px-4 py-2">
+                    <div>
+                      <p className="font-medium">{order.customer.name}</p>
+                      <p className="text-sm text-gray-500">{order.customer.email}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center px-4 py-2">
+                    <span
+                      className={`px-2 py-1 rounded-full ${
+                        order.status === "completed"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {order.status}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-left px-4 py-2">
+                    {order.items.map((item, idx) => (
+                      <div key={idx} className="text-sm">
+                        <p>{item.product.product}</p>
+                        <p className="text-gray-500">
+                          Quantity: {item.quantity}, Price: ${item.price.toFixed(2)}
+                        </p>
+                      </div>
+                    ))}
+                  </TableCell>
+                  <TableCell className="text-center px-4 py-2">
+                    {new Date(order.createdAt).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
-}
+};
 
-export default Page;
+export default OrdersPage;

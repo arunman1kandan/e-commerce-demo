@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
@@ -48,7 +50,10 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-100">
       {/* Header */}
-      <div className="flex items-center justify-center h-16 bg-white border-b shadow-md">
+      <div className="flex items-center p-4 h-16 bg-white border-b shadow-md">
+        <Button className="mr-5" size={"sm"} onClick={() => window.location.href = "/"}>
+          <ArrowLeft />
+        </Button>
         <h1 className="text-lg font-bold">Chat with AI</h1>
       </div>
 
