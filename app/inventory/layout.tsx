@@ -4,8 +4,8 @@ export default function InventoryLayout({ children }: { children: React.ReactNod
   return (
     <html lang="en">
       <body>
+        <Toaster position="bottom-right" />
         {children}
-        <Toaster position="bottom-right" richColors /> {/* Enables Sonner toasts */}
       </body>
     </html>
   );

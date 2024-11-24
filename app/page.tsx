@@ -1,9 +1,98 @@
+"use client"
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Package, ShoppingCart, Users, DollarSign, Activity } from 'lucide-react'
+import { Package, ShoppingCart, Users, DollarSign, Activity, Loader2, HomeIcon, PackageCheckIcon, MessageCircle } from 'lucide-react'
+import axios from 'axios'
+import { useEffect, useState } from 'react'  // Import necessary hooks from React
 
-export default function DashboardPage() {
+// Fetch customer count from API
+async function getCustomerCount() {
+  const res = await axios.get('http://localhost:3000/api/customers/getCount')
+  return res.data
+}
+
+// Fetch orders count from API
+async function getOrdersCount(){
+  const res = await axios.get('http://localhost:3000/api/orders/getCount')
+  return res.data
+}
+
+// Fetch products count from API
+async function getProductsCount(){
+  const res = await axios.get('http://localhost:3000/api/inventory/getCount')
+  return res.data
+}
+
+// Fetch revenue from API
+async function getRevenue(){
+  const res = await axios.get('http://localhost:3000/api/orders/getRevenue')
+  return res.data
+}
+
+export default function Page() {
+  // Define state variables to hold the fetched data
+  const [customerCount, setCustomerCount] = useState(null)
+  const [ordersCount, setOrdersCount] = useState(null)
+  const [productsCount, setProductsCount] = useState(null)
+  const [revenue, setRevenue] = useState(null)
+
+  // Fetch data once when the component mounts
+  useEffect(() => {
+    async function fetchData() {
+      const customerData = await getCustomerCount()
+      const orderData = await getOrdersCount()
+      const productData = await getProductsCount()
+      const revenueData = await getRevenue()
+      
+      // Update the state with the fetched data
+      setCustomerCount(customerData)
+      setOrdersCount(orderData)
+      setProductsCount(productData)
+      setRevenue(revenueData)
+    }
+    
+    fetchData()  // Call the async function to fetch data
+  }, [])  // Empty dependency array ensures the effect runs only once (on mount)
+
+  // Check if the data is still being loaded (optional: can show a loading state)
+  if (customerCount === null || ordersCount === null || productsCount === null || revenue === null) {
+    return <div className='h-screen flex flex-col gap-2 items-center justify-center'>
+      <Loader2 className='animate-spin' size={40} />
+      <h2>
+      Please wait while we fetch the data...
+      </h2>
+    </div>
+  }
+
+  const navbarItems = [
+    {
+      title: 'Home',
+      href: '/',
+      icon: <HomeIcon size={20} />
+    },
+    {
+      title: 'Products',
+      href: '/products',
+      icon: <Package size={20} />
+    },
+    {
+      title: 'Add to inventory',
+      href: '/inventory',
+      icon: <ShoppingCart size={20} />
+    },
+    {
+      title: 'Place an order',
+      href: '/order',
+      icon: <PackageCheckIcon size={20} />
+    },
+    {
+      title : "Chat with our AI",
+      href : "/chat",
+      icon : <MessageCircle size={20}/>
+    }
+  ]
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
@@ -13,10 +102,14 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-gray-900">E-commerce Admin</h1>
             <nav>
               <ul className="flex space-x-4">
-                <li><Link href="#" className="text-gray-600 hover:text-gray-900">Dashboard</Link></li>
-                <li><Link href="#" className="text-gray-600 hover:text-gray-900">Products</Link></li>
-                <li><Link href="#" className="text-gray-600 hover:text-gray-900">Orders</Link></li>
-                <li><Link href="#" className="text-gray-600 hover:text-gray-900">Customers</Link></li>
+                  {navbarItems.map((item, index) => (
+                    <li key={index}>
+                      <Link href={item.href} className="text-gray-600 hover:text-gray-900 flex items-center gap-1">
+                        {item.icon}
+                        {item.title}
+                      </Link>
+                    </li>
+                  ))}
               </ul>
             </nav>
           </div>
@@ -36,7 +129,7 @@ export default function DashboardPage() {
                 <Package className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">1,234</div>
+                <div className="text-2xl font-bold">{productsCount}</div>
                 <p className="text-xs text-muted-foreground">+10% from last month</p>
               </CardContent>
             </Card>
@@ -46,7 +139,7 @@ export default function DashboardPage() {
                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">567</div>
+                <div className="text-2xl font-bold">{ordersCount}</div>
                 <p className="text-xs text-muted-foreground">+5% from last month</p>
               </CardContent>
             </Card>
@@ -56,7 +149,7 @@ export default function DashboardPage() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">8,901</div>
+                <div className="text-2xl font-bold">{customerCount}</div>
                 <p className="text-xs text-muted-foreground">+15% from last month</p>
               </CardContent>
             </Card>
@@ -66,7 +159,7 @@ export default function DashboardPage() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">$123,456</div>
+                <div className="text-2xl font-bold">{revenue}</div>
                 <p className="text-xs text-muted-foreground">+20% from last month</p>
               </CardContent>
             </Card>
@@ -94,10 +187,6 @@ export default function DashboardPage() {
               </ul>
             </CardContent>
           </Card>
-
-          <div className="text-center">
-            <Button>View All Activity</Button>
-          </div>
         </div>
       </main>
 
@@ -112,4 +201,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
