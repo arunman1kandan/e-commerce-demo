@@ -12,33 +12,40 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid prompt" }, { status: 400 });
     }
 
-    
     // Get the current inventory items from the database
     const inventoryItems = await prisma.inventory.findMany();
 
-    // Get the current orders from the database
-    const orders = await prisma.order.findMany();
+    // Get the current orders from the database, including order items
+    const orders = await prisma.order.findMany({
+      include: {
+        items: {
+          include: {
+            product: true, // Include related inventory (product)
+          },
+        },
+        customer: true, // Include related customer data
+      },
+    });
 
     // Format the inventory and orders data
     const inventoryContext = formatInventoryForPrompt(inventoryItems);
     const ordersContext = formatOrdersForPrompt(orders);
 
-        // Define the system prompt to give the model context on the task at hand
-        const systemPrompt = `
-        You are an assistant that helps answer questions about an e-commerce system.
-        The system has the following inventory and orders data:
-        Inventory:
-        ${inventoryContext}
-        
-        Orders:
-        ${ordersContext}
+    // Define the system prompt to give the model context on the task at hand
+    const systemPrompt = `
+    You are an assistant that helps answer questions about an e-commerce system.
+    The system has the following inventory and orders data:
+    Inventory:
+    ${inventoryContext}
+    
+    Orders:
+    ${ordersContext}
 
-        Note since the ordersContext has Items which is an array of objects, you should format it so that it is easy to read and understand.
-        
-        Please answer the user's questions based on the current state of inventory and orders.
-        You can use markdown syntax for formatting your response and make sure that the response is clear and concise and not cluttered and give borders for tables.
-      `;
-  
+    Note: Since the ordersContext has Items which is an array of objects, you should format it so that it is easy to read and understand.
+    Never ever give html format in your response. Always give markdown format.
+    Please answer the user's questions based on the current state of inventory and orders.
+    You can use markdown syntax for formatting your response and make sure that the response is clear and concise and not cluttered. Give borders for tables.
+    `;
 
     // Combine the inventory and orders context with the user prompt
     const fullPrompt = `${systemPrompt}\n\nUser's question: ${prompt}`;
@@ -69,9 +76,12 @@ function formatInventoryForPrompt(inventoryItems: Array<{ product: string; quant
 }
 
 // Helper function to format the orders data for the prompt
-function formatOrdersForPrompt(orders: Array<{ id: number; customer: string; status: string; totalAmount: number; items: any; createdAt: Date }>) {
+function formatOrdersForPrompt(orders: Array<{ id: number; customer: { name: string }; status: string; createdAt: Date; items: Array<{ product: { product: string }; quantity: number; price: number; tax: number; discount: number }> }>) {
   return orders.map((order) => {
-    const items = JSON.stringify(order.items); // Serialize the JSON to a string
-    return `Order ID: ${order.id}, Customer: ${order.customer}, Status: ${order.status}, Total Amount: ${order.totalAmount}, Created At: ${order.createdAt}, Items: ${items}`;
+    const items = order.items.map(item => {
+      return `Product: ${item.product.product}, Quantity: ${item.quantity}, Price: ${item.price}, Tax: ${item.tax ?? 'N/A'}, Discount: ${item.discount ?? 'N/A'}`;
+    }).join("\n");
+
+    return `Order ID: ${order.id}, Customer: ${order.customer.name}, Status: ${order.status}, Created At: ${order.createdAt}, Items:\n${items}`;
   }).join("\n");
 }

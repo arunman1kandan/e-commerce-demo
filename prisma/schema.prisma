@@ -14,19 +14,40 @@ datasource db {
   directUrl = env("SUPABASE_DIRECT_URL")
 }
 
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  orders    Order[]
+  createdAt DateTime @default(now())
+}
+
 model Order {
-  id          Int      @id @default(autoincrement())
-  customer    String
+  id          Int         @id @default(autoincrement())
+  customer    Customer    @relation(fields: [customerId], references: [id])
+  customerId  Int
   status      String
-  totalAmount Float
-  items       Json
-  createdAt   DateTime @default(now())
+  createdAt   DateTime    @default(now())
+  items       OrderItem[]
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  order     Order    @relation(fields: [orderId], references: [id])
+  orderId   Int
+  product   Inventory @relation(fields: [productId], references: [id])
+  productId Int
+  quantity  Int
+  price     Float     // This is the price at the time of order to account for price changes.
+  tax       Float?    // Optional field for tax.
+  discount  Float?    // Optional field for discount.
 }
 
 model Inventory {
-  id       Int      @id @default(autoincrement())
-  product  String
-  quantity Int
-  price   Float
-  totalValue Float
+  id         Int         @id @default(autoincrement())
+  product    String
+  quantity   Int
+  price      Float
+  totalValue Float       @default(0)
+  orderItems OrderItem[] // Relation field for bi-directional relationship
 }

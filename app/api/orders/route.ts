@@ -1,88 +1,141 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma"; // Assuming you are using Prisma for DB interaction
+import { prisma } from "@/lib/prisma";
 
+// Handle GET requests to fetch all orders
 export async function GET(req: Request) {
   try {
-    // Query all orders from the database without any filters
+    // Query all orders, including related customer and order items
     const orders = await prisma.order.findMany({
+      include: {
+        customer: true, // Include customer details
+        items: {
+          include: {
+            product: true, // Include product details for each order item
+          },
+        },
+      },
     });
 
-    // If no orders found
     if (orders.length === 0) {
       return NextResponse.json({ message: "No orders found" }, { status: 404 });
     }
 
-    // Return the fetched orders
     return NextResponse.json({ orders }, { status: 200 });
-
   } catch (error) {
     console.error("Error fetching orders:", error);
-
-    // Provide more detailed error message based on the error type
-    if (error instanceof Error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    // For unknown errors, return a generic message
-    return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Failed to fetch orders" }, { status: 500 });
   }
 }
 
-
+// Handle POST requests to create a new order
 export async function POST(req: Request) {
   try {
     // Parse the request body
-    const { customer, status, totalAmount, items } = await req.json();
+    const { customerId, customerEmail, status, items } = await req.json();
 
-    // Validate the input
-    if (!customer || !items || items.length === 0) {
-      return NextResponse.json({ error: "Invalid order data" }, { status: 400 });
+    // Log the received data to verify it
+    console.log("Received data:", { customerId, customerEmail, status, items });
+
+    // Validate input fields
+    if (!items || items.length === 0) {
+      return NextResponse.json({ error: "Order items are required" }, { status: 400 });
     }
 
-    // Create a transaction to ensure atomicity (either everything succeeds or everything fails)
+    // Set customerId to the received one or try to find the customer if it's missing
+    let finalCustomerId = customerId;
+
+    // If no customerId is provided, try to find the customer using the email
+    if (!finalCustomerId && customerEmail) {
+      const existingCustomer = await prisma.customer.findUnique({
+        where: { email: customerEmail },
+      });
+
+      if (existingCustomer) {
+        finalCustomerId = existingCustomer.id; // Use the existing customer's ID
+      } else {
+        // If no customer exists with that email, create a new customer
+        const newCustomer = await prisma.customer.create({
+          data: {
+            email: customerEmail,
+            name: customerEmail.split('@')[0], // Use email prefix as customer name (optional customization)
+          },
+        });
+        finalCustomerId = newCustomer.id; // Use the new customer's ID
+      }
+    }
+
+    // Log the final customer ID that will be used for the order
+    console.log("Final customer ID:", finalCustomerId);
+
+    // Begin Prisma transaction to ensure atomicity
     const result = await prisma.$transaction(async (prisma) => {
-      // Step 1: Create the order
+      // Create the order
       const newOrder = await prisma.order.create({
         data: {
-          customer,
+          customerId: finalCustomerId,
           status,
-          totalAmount,
-          items: JSON.stringify(items), // Store items as JSON
         },
       });
 
-      // Step 2: Update inventory - Decrease stock for each item in the order
+      console.log("Created neworder:", newOrder)
+
+
+      // Loop through the order items to create the order items and update inventory
+      console.log("Items:", items)
+
       for (const item of items) {
+
+        const { productId, quantity, price, tax, discount } = item;
+
+        // Find the product in the inventory
         const inventoryItem = await prisma.inventory.findUnique({
-          where: { id: item.productId },
+          where: { id: productId },
         });
 
-        // Check if the item exists and has enough stock
-        if (!inventoryItem || inventoryItem.quantity < item.quantity) {
-          throw new Error(`Not enough stock for product ID ${item.productId}`);
+        console.log("Inventory item:", inventoryItem)
+        const finalPrice = inventoryItem!.price
+
+        // Check if the product is in stock
+        if (!inventoryItem || inventoryItem.quantity < quantity) {
+          throw new Error(`Not enough stock for product ID ${productId}`);
         }
 
-        // Decrease the inventory quantity
+        console.log("Data : ", { productId, quantity, price, tax, discount })
+
+        // Create the order item
+        await prisma.orderItem.create({
+          data: {
+            orderId: newOrder.id,
+            productId,
+            quantity,
+            price : finalPrice,
+            tax: tax || 0,
+            discount: discount || 0,
+          },
+        });
+
+        console.log("Created order item:")
+
+        // Update the inventory after the order is placed
         await prisma.inventory.update({
-          where: { id: item.productId },
+          where: { id: productId },
           data: {
             quantity: {
-              decrement: item.quantity,
+              decrement: quantity, // Decrease the stock by the quantity sold
             },
-            totalValue: (inventoryItem.quantity - item.quantity) * inventoryItem.price, // Update total value
+            totalValue: (inventoryItem.quantity - quantity) * inventoryItem.price, // Update total value of inventory
           },
         });
       }
 
-      // Return the new order if everything was successful
-      return newOrder;
+      return newOrder; // Return the created order
     });
 
-    // Return a success response
+    // Return a success response with the created order
     return NextResponse.json({ order: result }, { status: 201 });
 
   } catch (error) {
-    console.error("Error creating order:", error);
+    console.error("Error creating order:", error); // Log the error
     return NextResponse.json({ error: error.message || "Failed to create order" }, { status: 500 });
   }
 }
