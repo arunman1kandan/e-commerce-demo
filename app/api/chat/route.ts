@@ -27,27 +27,35 @@ export async function POST(req: Request) {
       },
     });
 
-    // Format the inventory and orders data
+    // Get the customers from the database
+    const customers = await prisma.customer.findMany();
+
+    // Format the inventory, orders, and customers data
     const inventoryContext = formatInventoryForPrompt(inventoryItems);
     const ordersContext = formatOrdersForPrompt(orders);
+    const customersContext = formatCustomersForPrompt(customers);
 
     // Define the system prompt to give the model context on the task at hand
     const systemPrompt = `
     You are an assistant that helps answer questions about an e-commerce system.
-    The system has the following inventory and orders data:
-    Inventory:
+    The system has the following inventory, orders, and customers data:
+
+    **Inventory:**
     ${inventoryContext}
     
-    Orders:
+    **Orders:**
     ${ordersContext}
 
+    **Customers:**
+    ${customersContext}
+    
     Note: Since the ordersContext has Items which is an array of objects, you should format it so that it is easy to read and understand.
-    Never ever give html format in your response. Always give markdown format.
-    Please answer the user's questions based on the current state of inventory and orders.
-    You can use markdown syntax for formatting your response and make sure that the response is clear and concise and not cluttered. Give borders for tables.
+    Never ever give HTML format in your response. Always use markdown format.
+    Please answer the user's questions based on the current state of inventory, orders, and customers.
+    Use markdown syntax to make your response clear, professional, and well-formatted. Include borders for tables where applicable.
     `;
 
-    // Combine the inventory and orders context with the user prompt
+    // Combine the inventory, orders, and customers context with the user prompt
     const fullPrompt = `${systemPrompt}\n\nUser's question: ${prompt}`;
 
     // Get response from Groq based on the full prompt
@@ -83,5 +91,12 @@ function formatOrdersForPrompt(orders: Array<{ id: number; customer: { name: str
     }).join("\n");
 
     return `Order ID: ${order.id}, Customer: ${order.customer.name}, Status: ${order.status}, Created At: ${order.createdAt}, Items:\n${items}`;
+  }).join("\n");
+}
+
+// Helper function to format the customers data for the prompt
+function formatCustomersForPrompt(customers: Array<{ id: number; name: string; email: string; createdAt: Date }>) {
+  return customers.map((customer) => {
+    return `Customer ID: ${customer.id}, Name: ${customer.name}, Email: ${customer.email}, Joined At: ${customer.createdAt.toISOString()}`;
   }).join("\n");
 }
