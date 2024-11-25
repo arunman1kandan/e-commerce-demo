@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button"; // Assuming this is a pre-designed button component
+import { Button } from "@/components/ui/button";
 
 export default function OrderPage() {
   const [inventory, setInventory] = useState<any[]>([]);

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
-import { prisma } from "@/lib/prisma"; // Assuming you are using Prisma for DB interaction
+import { prisma } from "@/lib/prisma";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API });
 
@@ -49,6 +49,7 @@ export async function POST(req: Request) {
     **Customers:**
     ${customersContext}
     
+    Note that you have to differentiate customers based on thier email addresses and not thier names even if 2 or more people have same name and different emails they are different
     Note: Since the ordersContext has Items which is an array of objects, you should format it so that it is easy to read and understand.
     Never ever give HTML format in your response. Always use markdown format.
     Please answer the user's questions based on the current state of inventory, orders, and customers.
