@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 export default function OrderPage() {
+  // State variables for managing inventory, selected items, customer info, etc.
   const [inventory, setInventory] = useState<any[]>([]);
   const [filteredInventory, setFilteredInventory] = useState<any[]>([]);
   const [selectedItems, setSelectedItems] = useState<{
@@ -20,10 +21,11 @@ export default function OrderPage() {
   const [newCustomer, setNewCustomer] = useState<{ name: string; email: string }>({ name: "", email: "" }); // For new customer details
   const [isCustomerChecked, setIsCustomerChecked] = useState(false); // To track customer check status
 
-
+  //State variables for pagination
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 3
 
+  // useEffect hook to fetch inventory data when the component mounts
   useEffect(() => {
     const fetchInventory = async () => {
       try {
@@ -44,6 +46,7 @@ export default function OrderPage() {
     fetchInventory();
   }, []);
 
+  // Function to handle search input changes and filter inventory
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     const filtered = inventory.filter((item) =>
@@ -51,7 +54,7 @@ export default function OrderPage() {
     );
     setFilteredInventory(filtered);
   };
-
+  // Function to handle quantity changes for selected items
   const handleQuantityChange = (productId: number, quantity: number) => {
     setSelectedItems((prev) => {
       const existingItem = prev.find((item) => item.productId === productId);
@@ -64,7 +67,7 @@ export default function OrderPage() {
       return [...prev, { productId, quantity }];
     });
   };
-
+  // Function to handle customer checks
   const handleCustomerCheck = async () => {
     if (!email) {
       toast.error("Please enter an email to check customer status.");
@@ -100,6 +103,7 @@ export default function OrderPage() {
     }
   };
 
+  // Function to handle customer registration
   const handleCustomerRegistration = async () => {
     if (!newCustomer.name || !newCustomer.email) {
       toast.error("Please fill in all customer details.");

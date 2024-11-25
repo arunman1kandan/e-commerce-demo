@@ -9,12 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 export default function ChatPage() {
+  // State variables to manage messages, input, loading, and streaming text
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+  // Function to scroll to the bottom of the messages container
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -23,6 +25,7 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages, streamingText, loading]);
 
+  // Function to simulate streaming text effect
   const simulateStreaming = async (text: string) => {
     const words = text.split(" ");
     setStreamingText("");
@@ -36,6 +39,7 @@ export default function ChatPage() {
     setStreamingText("");
   };
 
+  // Function to handle sending a message
   const handleSendMessage = async () => {
     if (!input.trim()) return;
 

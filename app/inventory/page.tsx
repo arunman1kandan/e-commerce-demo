@@ -6,6 +6,7 @@ import { toast } from "sonner"; // Import toast from Sonner
 import { Button } from "@/components/ui/button";
 
 export default function AddInventoryForm() {
+  //State variables for form fields
   const [product, setProduct] = useState("");
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");

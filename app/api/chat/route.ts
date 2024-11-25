@@ -37,7 +37,7 @@ export async function POST(req: Request) {
 
     // Define the system prompt to give the model context on the task at hand
     const systemPrompt = `
-    You are an assistant that helps answer questions about an e-commerce system.
+    You are an assistant named ChatCart that helps answer questions about an e-commerce system.
     The system has the following inventory, orders, and customers data:
 
     **Inventory:**
