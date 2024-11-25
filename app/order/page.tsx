@@ -199,6 +199,8 @@ export default function OrderPage() {
   const endIndex = startIndex + itemsPerPage;
 
   const paginatedInventory = filteredInventory.slice(startIndex, endIndex);
+  console.log("Paginated Inventory:", paginatedInventory)
+
 
 
   return (
@@ -265,7 +267,7 @@ export default function OrderPage() {
               Previous
             </Button>
             <Button
-              onClick={() => setCurrentPage((prev) => Math.max(prev + 1, totalPages))}
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
               className="text-sm py-2 px-4"
             >
